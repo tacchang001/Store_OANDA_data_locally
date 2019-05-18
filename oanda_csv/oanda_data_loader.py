@@ -1,16 +1,12 @@
 # http://swdrsker.hatenablog.com/entry/2018/05/18/070000
 
-from oandapyV20 import API
 from oandapyV20.exceptions import V20Error
-import oandapyV20.endpoints.instruments as instruments
-import datetime
 import dateutil
 import json
 import pandas
 import argparse
 
 import oanda_csv.oanda_account as account
-
 import oandaV20helper.endpoints.instruments as v20
 
 
@@ -33,9 +29,14 @@ def main(args):
         df2 = df2.ix[:, ['o', 'h', 'l', 'c']]
         df3 = pandas.DataFrame({'volume': [row['volume'] for row in _res['candles']]})
         candle = pandas.concat([df1, df2, df3], axis=1)
-        print(candle.head)
-        #
-        # candle.to_csv("candle2.csv", index=False)
+
+        candle.to_csv(
+            "{}_{}_{}.csv".format(
+                args.instrument,
+                args.granularity,
+                args.starttime.strftime('%Y%m%d_%H%M')
+            ),
+            index=False)
 
     except V20Error as ev20:
         print("OANDA Error: {}".format(ev20))
@@ -59,7 +60,8 @@ if __name__ == '__main__':
                         help="Name of the Instrument")
     parser.add_argument('-g',
                         "--granularity",
-                        help="The granularity of the candlesticks to fetch [default=M1]")
+                        help="The granularity of the candlesticks to fetch [default=M1]",
+                        default="M1")
     parser.add_argument('-s',
                         "--starttime",
                         help="The start of the time range to fetch candlesticks for.",
@@ -68,6 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('-e',
                         "--endtime",
                         help="The end of the time range to fetch candlesticks for.",
+                        required=True,
                         type=valid_date)
 
     args = parser.parse_args()
