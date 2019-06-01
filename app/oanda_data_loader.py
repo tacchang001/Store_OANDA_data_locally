@@ -2,7 +2,6 @@
 
 from oandapyV20.exceptions import V20Error
 import dateutil
-import json
 import pandas
 import argparse
 
