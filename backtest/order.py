@@ -24,7 +24,7 @@ class OrderType(Enum):
     INVALID = "none"
 
 
-class OrderBuy(JsonAdapter):
+class Order(JsonAdapter):
     """
     units : int
         必須 注文単位
@@ -56,3 +56,18 @@ class OrderBuy(JsonAdapter):
             self.expiry.strftime('%Y/%m/%d'),
             self.price
         )
+
+    def __eq__(self, other):
+        try:
+            if (self.units == other.units
+                    and self.side == other.side
+                    and self.type == other.type
+                    and self.expiry == other.expiry
+                    and self.price == other.price):
+                return True
+        except AttributeError:
+            pass
+        return False
+
+    def __ne__(self, other):
+        return not self == other
