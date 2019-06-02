@@ -1,6 +1,5 @@
 # https://qiita.com/Thiru0000/items/35554f523565e4b12b51
 
-import sys
 import json
 
 
@@ -21,15 +20,12 @@ class JsonAdapter(object):
         for key in self.__dict__.keys():
             if isinstance(getattr(self, key), JsonAdapter) or getattr(self, key) is None:
                 _val_class = getattr(self, key)
-                if _val_class is None:
-                    _val_class = getattr(sys.modules["Classes.DataPDO"], key)()
-
                 _val_class.serialize(_json[key])
                 setattr(self, key, _val_class)
-
+            elif isinstance(getattr(self, key), float):
+                setattr(self, key, float(_json[key]))
             elif isinstance(getattr(self, key), int):
                 setattr(self, key, int(_json[key]))
-
             else:
                 setattr(self, key, _json[key])
 
