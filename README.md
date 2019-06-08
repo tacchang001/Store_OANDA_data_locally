@@ -1,25 +1,61 @@
 # Store_OANDA_data_locally
 OANDAのデータをローカルDBに保存する。いつでもダウンロードできるけど大量＆頻繁にダウンロードするのは申し訳ない。
 
-# Johnの起床シーケンス
+```uml
 
-- JohnはAliceからの通信をtriggerに起床します
-- Johnは起床後、Bobに通知を送ります
+@startuml
 
-```mermaid
-classDiagram
-Class01 <|-- AveryLongClass : Cool
-Class03 *-- Class04
-Class05 o-- Class06
-Class07 .. Class08
-Class09 --> C2 : Where am i?
-Class09 --* C3
-Class09 --|> Class07
-Class07 : equals()
-Class07 : Object[] elementData
-Class01 : size()
-Class01 : int chimp
-Class01 : int gorilla
-Class08 <--> C2: Cool label
+class "為替レート" as CandleStick {
+      open:
+      high:
+      low:
+      close:
+}
+' 制約をノートとして記述する
+note top of CandleStick
+     {値動きの履歴}
+end note
+
+class "注文" as Order {
+      指値:
+      売りor買い
+      期限:
+      
+      注文()
+      キャンセル()
+}
+
+abstract class "為替指数" as TechnicalIndicator {
+  value:
+}
+
+class "移動平均" as MA {
+  value:
+}
+
+class "MACD" as MACD {
+  value:
+}
+
+class "売買戦略" as Strategy {
+
+}
+
+class "バックテスト" as Backtest {
+
+}
+
+MA --|> TechnicalIndicator
+MACD --|> TechnicalIndicator
+
+TechnicalIndicator --> CandleStick
+Order --> CandleStick
+Strategy --> TechnicalIndicator
+Strategy --> CandleStick
+Strategy --> Order
+Backtest --> CandleStick
+Backtest --> Strategy
+
+@enduml
+
 ```
-
