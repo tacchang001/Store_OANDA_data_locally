@@ -1,6 +1,7 @@
 # Store_OANDA_data_locally
 OANDAのデータをローカルDBに保存する。いつでもダウンロードできるけど大量＆頻繁にダウンロードするのは申し訳ない。
 
+```uml
 @startuml samplediagram
 title Sample ERDiagram
 entity "entity1" {
@@ -27,3 +28,4 @@ entity1} o-- entity2
 entity1 --{ entity3
 entity1 }--{ entity4
 @enduml
+```
