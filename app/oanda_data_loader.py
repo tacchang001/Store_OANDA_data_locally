@@ -3,6 +3,7 @@
 from oandapyV20.exceptions import V20Error
 import dateutil
 import pandas
+import json
 import argparse
 
 import oanda_csv.oanda_account as account
@@ -14,28 +15,38 @@ def main(args):
         _id, _token = account.read_oanda_authz()
         _param = v20.make_instruments_params(
             granularity=args.granularity,
+            price=args.price,
             from_time=args.starttime,
             to_time=args.endtime
         )
-        _res = v20.get_candles(
+        res = v20.get_candles(
             access_token=_token,
             instrument=args.instrument,
             param=_param
         )
         # print(json.dumps(request.response, indent=2))
-        df1 = pandas.DataFrame({'time': [row['time'] for row in _res['candles']]})
-        df2 = pandas.DataFrame.from_dict([row['mid'] for row in _res['candles']])
-        df2 = df2.ix[:, ['o', 'h', 'l', 'c']]
-        df3 = pandas.DataFrame({'volume': [row['volume'] for row in _res['candles']]})
-        candle = pandas.concat([df1, df2, df3], axis=1)
+        jfn = "{}_{}_{}_{}.json".format(
+            args.instrument,
+            args.granularity,
+            args.price,
+            args.starttime.strftime('%Y%m%d_%H%M')
+        )
+        fw = open(jfn, "w")
+        json.dump(res, fw, indent=4)
 
-        candle.to_csv(
-            "{}_{}_{}.csv".format(
-                args.instrument,
-                args.granularity,
-                args.starttime.strftime('%Y%m%d_%H%M')
-            ),
-            index=False)
+        # df1 = pandas.DataFrame({'time': [row['time'] for row in _res['candles']]})
+        # df2 = pandas.DataFrame.from_dict([row['mid'] for row in _res['candles']])
+        # df2 = df2.ix[:, ['o', 'h', 'l', 'c']]
+        # df3 = pandas.DataFrame({'volume': [row['volume'] for row in _res['candles']]})
+        # candle = pandas.concat([df1, df2, df3], axis=1)
+        #
+        # candle.to_csv(
+        #     "{}_{}_{}.csv".format(
+        #         args.instrument,
+        #         args.granularity,
+        #         args.starttime.strftime('%Y%m%d_%H%M')
+        #     ),
+        #     index=False)
 
     except V20Error as ev20:
         print("OANDA Error: {}".format(ev20))
@@ -71,6 +82,10 @@ if __name__ == '__main__':
                         help="The end of the time range to fetch candlesticks for.",
                         required=True,
                         type=valid_date)
+    parser.add_argument('-p',
+                        "--price",
+                        help="The Price component(s) to get candlestick data for.",
+                        default='M')
 
     args = parser.parse_args()
     print(args)

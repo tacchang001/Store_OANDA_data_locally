@@ -1,10 +1,12 @@
 from backtest.order import Order
 import numpy as np
 
+
 class Strategy:
     """
 
     """
+
     def __init__(self, market):
         self.market = market
 
