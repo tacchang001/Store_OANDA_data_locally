@@ -1,8 +1,6 @@
-# http://swdrsker.hatenablog.com/entry/2018/05/18/070000
-
 from oandapyV20.exceptions import V20Error
 import dateutil
-import pandas
+import pprint
 import json
 import argparse
 
@@ -13,40 +11,26 @@ import oandaV20helper.endpoints.instruments as v20
 def main(args):
     try:
         _id, _token = account.read_oanda_authz()
-        _param = v20.make_instruments_params(
-            granularity=args.granularity,
-            price=args.price,
-            from_time=args.starttime,
-            to_time=args.endtime
-        )
-        res = v20.get_candles(
-            access_token=_token,
-            instrument=args.instrument,
-            param=_param
-        )
-        # print(json.dumps(request.response, indent=2))
-        jfn = "{}_{}_{}_{}.json".format(
+        d = {}
+        for price in ['A', 'M', 'B']:
+            _param = v20.make_instruments_params(
+                granularity=args.granularity,
+                price=price,
+                from_time=args.starttime,
+                to_time=args.endtime
+            )
+            d[price] = v20.get_candles(
+                access_token=_token,
+                instrument=args.instrument,
+                param=_param
+            )
+            pprint.pprint(d[price])
+        fn = "{}_{}_{}.json".format(
             args.instrument,
             args.granularity,
-            args.price,
             args.starttime.strftime('%Y%m%d_%H%M')
         )
-        fw = open(jfn, "w")
-        json.dump(res, fw, indent=4)
-
-        # df1 = pandas.DataFrame({'time': [row['time'] for row in _res['candles']]})
-        # df2 = pandas.DataFrame.from_dict([row['mid'] for row in _res['candles']])
-        # df2 = df2.ix[:, ['o', 'h', 'l', 'c']]
-        # df3 = pandas.DataFrame({'volume': [row['volume'] for row in _res['candles']]})
-        # candle = pandas.concat([df1, df2, df3], axis=1)
-        #
-        # candle.to_csv(
-        #     "{}_{}_{}.csv".format(
-        #         args.instrument,
-        #         args.granularity,
-        #         args.starttime.strftime('%Y%m%d_%H%M')
-        #     ),
-        #     index=False)
+        merge_price(d['A'], d['M'], d['B'], fn, args.granularity, args.instrument)
 
     except V20Error as ev20:
         print("OANDA Error: {}".format(ev20))
@@ -60,6 +44,30 @@ def valid_date(s):
     except ValueError:
         msg = "Not a valid date: '{0}'.".format(s)
         raise argparse.ArgumentTypeError(msg)
+
+
+def merge_price(ask, mid, bid, file_name, granularity, instrument):
+    d = []
+    dtime = [row['time'] for row in ask['candles']]
+    dcomplete = [row['complete'] for row in ask['candles']]
+    dvolume = [row['volume'] for row in ask['candles']]
+    dask = [row['ask'] for row in ask['candles']]
+    dmid = [row['mid'] for row in mid['candles']]
+    dbid = [row['bid'] for row in bid['candles']]
+    for i in range(len(dtime)):
+        d.append({
+            'time': dtime[i],
+            'complete': dcomplete[i],
+            'volume': dvolume[i],
+            'ask': dask[i],
+            'mid': dmid[i],
+            'bid': dbid[i]
+        })
+    r = {'candles': d, 'granularity': granularity, 'instrument': instrument}
+    # print(print(json.dumps(r, indent=2)))
+    fw = open(file_name, 'w')
+    json.dump(r, fw, indent=4)
+    fw.close()
 
 
 if __name__ == '__main__':
@@ -82,10 +90,6 @@ if __name__ == '__main__':
                         help="The end of the time range to fetch candlesticks for.",
                         required=True,
                         type=valid_date)
-    parser.add_argument('-p',
-                        "--price",
-                        help="The Price component(s) to get candlestick data for.",
-                        default='M')
 
     args = parser.parse_args()
     print(args)
