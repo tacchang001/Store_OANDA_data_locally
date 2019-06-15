@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "properties": {
+    "candles": {
+      "type": "array",
+      "items": {
+        "required": [
+          "time",
+          "complete",
+          "volume",
+          "ask",
+          "mid",
+          "bid"
+        ],
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "volume": {
+            "type": "integer"
+          },
+          "ask": {
+            "type": "object",
+            "required": [
+              "o",
+              "h",
+              "l",
+              "c"
+            ],
+            "properties": {
+              "o": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "h": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "l": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "c": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              }
+            }
+          },
+          "mid": {
+            "type": "object",
+            "required": [
+              "o",
+              "h",
+              "l",
+              "c"
+            ],
+            "properties": {
+              "o": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "h": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "l": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "c": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              }
+            }
+
+          },
+          "bid": {
+            "type": "object",
+            "required": [
+              "o",
+              "h",
+              "l",
+              "c"
+            ],
+            "properties": {
+              "o": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "h": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "l": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              },
+              "c": {
+                "type": "string",
+                "pattern": "^([1-9]\\d*|0)(\\.\\d+)?$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "granularity": {
+      "type": "string"
+    },
+    "instrument": {
+      "type": "string"
+    }
+  }
+}
