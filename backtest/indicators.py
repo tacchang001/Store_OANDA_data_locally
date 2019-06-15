@@ -4,25 +4,30 @@ import pandas as pd
 from scipy.signal import lfilter, lfilter_zi
 from numba import jit
 
+_OPEN = 'o'
+_HIGH = 'h'
+_LOW = 'l'
+_CLOSE = 'c'
+
 
 # dfのデータからtfで指定するタイムフレームの4本足データを作成する関数
 def TF_ohlc(df, tf):
     x = df.resample(tf).ohlc()
-    O = x['Open']['open']
-    H = x['High']['high']
-    L = x['Low']['low']
-    C = x['Close']['close']
-    ret = pd.DataFrame({'Open': O, 'High': H, 'Low': L, 'Close': C},
-                       columns=['Open', 'High', 'Low', 'Close'])
+    O = x[_OPEN][_OPEN]
+    H = x[_HIGH][_HIGH]
+    L = x[_LOW][_LOW]
+    C = x[_CLOSE][_CLOSE]
+    ret = pd.DataFrame({_OPEN: O, _HIGH: H, _LOW: L, _CLOSE: C},
+                       columns=[_OPEN, _HIGH, _LOW, _CLOSE])
     return ret.dropna()
 
 
 # dfのデータに Median, Typical, Weighted price を追加する関数
 def ext_ohlc(df):
-    O = df['Open']
-    H = df['High']
-    L = df['Low']
-    C = df['Close']
+    O = df[_OPEN]
+    H = df[_HIGH]
+    L = df[_LOW]
+    C = df[_CLOSE]
     ext = pd.DataFrame({'Median': (H + L) / 2,
                         'Typical': (H + L + C) / 3,
                         'Weighted': (H + L + C * 2) / 4},
@@ -91,20 +96,20 @@ def MAonSeries(s, ma_period, ma_method):
 
 
 # iMA()関数
-def iMA(df, ma_period, ma_shift=0, ma_method='SMA', applied_price='Close'):
+def iMA(df, ma_period, ma_shift=0, ma_method='SMA', applied_price=_CLOSE):
     return MAonSeries(df[applied_price], ma_period, ma_method).shift(ma_shift)
 
 
 # iATR()関数
 def iATR(df, ma_period, ma_method='SMA'):
-    TR = np.max(np.vstack((df['High'].values, shift(df['Close'].values))).T, axis=1) \
-         - np.min(np.vstack((df['Low'].values, shift(df['Close'].values))).T, axis=1)
+    TR = np.max(np.vstack((df[_HIGH].values, shift(df[_CLOSE].values))).T, axis=1) \
+         - np.min(np.vstack((df[_LOW].values, shift(df[_CLOSE].values))).T, axis=1)
     return pd.Series(MAonArray(TR, ma_period, ma_method), index=df.index)
 
 
 # iDEMA()関数
 @jit
-def iDEMA(df, ma_period, ma_shift=0, applied_price='Close'):
+def iDEMA(df, ma_period, ma_shift=0, applied_price=_CLOSE):
     alpha = 2 / (ma_period + 1)
     a1 = 2 * (alpha - 1)
     a2 = (1 - alpha) ** 2
@@ -121,7 +126,7 @@ def iDEMA(df, ma_period, ma_shift=0, applied_price='Close'):
 
 # iTEMA()関数
 @jit
-def iTEMA(df, ma_period, ma_shift=0, applied_price='Close'):
+def iTEMA(df, ma_period, ma_shift=0, applied_price=_CLOSE):
     alpha = 2 / (ma_period + 1)
     a1 = 3 * (alpha - 1)
     a2 = 3 * (1 - alpha) ** 2
@@ -141,7 +146,7 @@ def iTEMA(df, ma_period, ma_shift=0, applied_price='Close'):
 
 # iMomentum()関数
 @jit
-def iMomentum(df, mom_period, applied_price='Close'):
+def iMomentum(df, mom_period, applied_price=_CLOSE):
     x = df[applied_price].values
     y = np.empty_like(x)
     y[:mom_period] = np.nan
@@ -151,7 +156,7 @@ def iMomentum(df, mom_period, applied_price='Close'):
 
 
 # iRSI()関数
-def iRSI(df, ma_period, applied_price='Close'):
+def iRSI(df, ma_period, applied_price=_CLOSE):
     diff = df[applied_price].diff()
     positive = MAonSeries(diff.clip_lower(0), ma_period, 'SMMA')
     negative = MAonSeries(diff.clip_upper(0), ma_period, 'SMMA')
@@ -159,7 +164,7 @@ def iRSI(df, ma_period, applied_price='Close'):
 
 
 # iStdDev()関数
-def iStdDev(df, ma_period, ma_shift=0, applied_price='Close'):
+def iStdDev(df, ma_period, ma_shift=0, applied_price=_CLOSE):
     return df[applied_price].rolling(ma_period).std(ddof=0).shift(ma_shift)
 
 
@@ -176,12 +181,12 @@ def iAC(df):
 
 # iBearsPower()関数
 def iBearsPower(df, ma_period):
-    return df['Low'] - MAonSeries(df['Close'], ma_period, 'EMA')
+    return df[_LOW] - MAonSeries(df[_CLOSE], ma_period, 'EMA')
 
 
 # iBullsPower()関数
 def iBullsPower(df, ma_period):
-    return df['High'] - MAonSeries(df['Close'], ma_period, 'EMA')
+    return df[_HIGH] - MAonSeries(df[_CLOSE], ma_period, 'EMA')
 
 
 # iCCI()関数
@@ -200,15 +205,15 @@ def iCCI(df, ma_period, applied_price='Typical'):
 
 # iDeMarker()関数
 def iDeMarker(df, ma_period):
-    DeMax = df['High'].diff().clip_lower(0).values
-    DeMin = -df['Low'].diff().clip_upper(0).values
+    DeMax = df[_HIGH].diff().clip_lower(0).values
+    DeMin = -df[_LOW].diff().clip_upper(0).values
     SDeMax = SMAonArray(DeMax, ma_period)
     SDeMin = SMAonArray(DeMin, ma_period)
     return pd.Series(SDeMax / (SDeMax + SDeMin), index=df.index)
 
 
 # iEnvelopes()関数
-def iEnvelopes(df, ma_period, deviation, ma_shift=0, ma_method='SMA', applied_price='Close'):
+def iEnvelopes(df, ma_period, deviation, ma_shift=0, ma_method='SMA', applied_price=_CLOSE):
     price = df[applied_price]
     MA = MAonSeries(price, ma_period, ma_method).shift(ma_shift)
     Upper = MA * (1 + deviation / 100)
@@ -218,7 +223,7 @@ def iEnvelopes(df, ma_period, deviation, ma_shift=0, ma_method='SMA', applied_pr
 
 
 # iMACD()関数
-def iMACD(df, fast_period, slow_period, signal_period, applied_price='Close'):
+def iMACD(df, fast_period, slow_period, signal_period, applied_price=_CLOSE):
     price = df[applied_price].values
     Main = MAonArray(price, fast_period, 'EMA') - MAonArray(price, slow_period, 'EMA')
     Signal = SMAonArray(Main, signal_period)
@@ -227,13 +232,13 @@ def iMACD(df, fast_period, slow_period, signal_period, applied_price='Close'):
 
 
 # iOsMA()関数
-def iOsMA(df, fast_period, slow_period, signal_period, applied_price='Close'):
+def iOsMA(df, fast_period, slow_period, signal_period, applied_price=_CLOSE):
     MACD = iMACD(df, fast_period, slow_period, signal_period, applied_price)
     return MACD['Main'] - MACD['Signal']
 
 
 # iTriX()関数
-def iTriX(df, ma_period, applied_price='Close'):
+def iTriX(df, ma_period, applied_price=_CLOSE):
     EMA1 = MAonSeries(df[applied_price], ma_period, 'EMA')
     EMA2 = MAonSeries(EMA1, ma_period, 'EMA')
     EMA3 = MAonSeries(EMA2, ma_period, 'EMA')
@@ -241,7 +246,7 @@ def iTriX(df, ma_period, applied_price='Close'):
 
 
 # iAMA()関数
-def iAMA(df, ma_period, fast_period, slow_period, ma_shift=0, applied_price='Close'):
+def iAMA(df, ma_period, fast_period, slow_period, ma_shift=0, applied_price=_CLOSE):
     price = df[applied_price]
     Signal = price.diff(ma_period).abs()
     Noise = price.diff().abs().rolling(ma_period).sum()
@@ -254,10 +259,10 @@ def iAMA(df, ma_period, fast_period, slow_period, ma_shift=0, applied_price='Clo
 
 
 # iFrAMA()関数
-def iFrAMA(df, ma_period, ma_shift=0, applied_price='Close'):
+def iFrAMA(df, ma_period, ma_shift=0, applied_price=_CLOSE):
     price = df[applied_price]
-    H = df['High']
-    L = df['Low']
+    H = df[_HIGH]
+    L = df[_LOW]
     N1 = (H.rolling(ma_period).max() - L.rolling(ma_period).min()) / ma_period
     N2 = (H.shift(ma_period).rolling(ma_period).max() - L.shift(ma_period).rolling(ma_period).min()) / ma_period
     N3 = (H.rolling(2 * ma_period).max() - L.rolling(2 * ma_period).min()) / (2 * ma_period)
@@ -269,8 +274,8 @@ def iFrAMA(df, ma_period, ma_shift=0, applied_price='Close'):
 
 # aiRVI()関数
 def iRVI(df, m_period):
-    CO = df['Close'].values - df['Open'].values
-    HL = df['High'].values - df['Low'].values
+    CO = df[_CLOSE].values - df[_OPEN].values
+    HL = df[_HIGH].values - df[_LOW].values
     MA = lfilter([1 / 6, 1 / 3, 1 / 3, 1 / 6], 1, CO)
     RA = lfilter([1 / 6, 1 / 3, 1 / 3, 1 / 6], 1, HL)
     Main = SMAonArray(MA, ma_period) / SMAonArray(RA, ma_period)
@@ -281,13 +286,13 @@ def iRVI(df, m_period):
 
 # iWPR()関数
 def iWPR(df, period):
-    Max = df['High'].rolling(period).max()
-    Min = df['Low'].rolling(period).min()
-    return (df['Close'] - Max) / (Max - Min) * 100
+    Max = df[_HIGH].rolling(period).max()
+    Min = df[_LOW].rolling(period).min()
+    return (df[_CLOSE] - Max) / (Max - Min) * 100
 
 
 # iVIDyA()関数
-def iVIDyA(df, cmo_period, ma_period, ma_shift=0, applied_price='Close'):
+def iVIDyA(df, cmo_period, ma_period, ma_shift=0, applied_price=_CLOSE):
     price = df[applied_price]
     UpSum = price.diff().clip_lower(0).rolling(cmo_period).sum()
     DnSum = -price.diff().clip_upper(0).rolling(cmo_period).sum()
@@ -297,7 +302,7 @@ def iVIDyA(df, cmo_period, ma_period, ma_shift=0, applied_price='Close'):
 
 
 # iBands()関数
-def iBands(df, bands_period, deviation, bands_shift=0, applied_price='Close'):
+def iBands(df, bands_period, deviation, bands_shift=0, applied_price=_CLOSE):
     price = df[applied_price].shift(bands_shift)
     Base = price.rolling(bands_period).mean()
     sigma = price.rolling(bands_period).std(ddof=0)
@@ -310,13 +315,13 @@ def iBands(df, bands_period, deviation, bands_shift=0, applied_price='Close'):
 # iStochastic()関数
 def iStochastic(df, Kperiod, Dperiod, slowing, ma_method='SMA', price_field='LOWHIGH'):
     if price_field == 'LOWHIGH':
-        high = df['High']
-        low = df['Low']
+        high = df[_HIGH]
+        low = df[_LOW]
     elif price_field == 'CLOSECLOSE':
-        high = low = df['Close']
+        high = low = df[_CLOSE]
     Hline = high.rolling(Kperiod).max().values
     Lline = low.rolling(Kperiod).min().values
-    close = df['Close'].values
+    close = df[_CLOSE].values
     sumlow = SMAonArray(close - Lline, slowing)
     sumhigh = SMAonArray(Hline - Lline, slowing)
     Main = sumlow / sumhigh * 100
@@ -328,10 +333,10 @@ def iStochastic(df, Kperiod, Dperiod, slowing, ma_method='SMA', price_field='LOW
 # iHLBand()関数
 def iHLBand(df, band_period, band_shift=0, price_field='LOWHIGH'):
     if price_field == 'LOWHIGH':
-        high = df['High']
-        low = df['Low']
+        high = df[_HIGH]
+        low = df[_LOW]
     elif price_field == 'CLOSECLOSE':
-        high = low = df['Close']
+        high = low = df[_CLOSE]
     Upper = high.rolling(band_period).max().shift(band_shift)
     Lower = low.rolling(band_period).min().shift(band_shift)
     return pd.DataFrame({'Upper': Upper, 'Lower': Lower},
@@ -362,14 +367,14 @@ def iGator(df, jaw_period, jaw_shift, teeth_period, teeth_shift,
 
 # iADX()関数
 def iADX(df, adx_period):
-    dP = df['High'].diff().clip_lower(0).values
-    dM = -df['Low'].diff().clip_upper(0).values
+    dP = df[_HIGH].diff().clip_lower(0).values
+    dM = -df[_LOW].diff().clip_upper(0).values
     dM[dP > dM] = 0
     dP[dP < dM] = 0
     dP[0] = dP[1]
     dM[0] = dM[1]
-    TR = np.max(np.vstack((df['High'].values, shift(df['Close'].values))).T, axis=1) \
-         - np.min(np.vstack((df['Low'].values, shift(df['Close'].values))).T, axis=1)
+    TR = np.max(np.vstack((df[_HIGH].values, shift(df[_CLOSE].values))).T, axis=1) \
+         - np.min(np.vstack((df[_LOW].values, shift(df[_CLOSE].values))).T, axis=1)
     PlusDI = 100 * MAonArray(dP / TR, adx_period, 'EMA')
     MinusDI = 100 * MAonArray(dM / TR, adx_period, 'EMA')
     Main = MAonArray(100 * np.abs(PlusDI - MinusDI) / (PlusDI + MinusDI), adx_period, 'EMA')
@@ -379,8 +384,8 @@ def iADX(df, adx_period):
 
 # iADXWilder()関数
 def iADXWilder(df, adx_period):
-    dP = df['High'].diff().clip_lower(0).values
-    dM = -df['Low'].diff().clip_upper(0).values
+    dP = df[_HIGH].diff().clip_lower(0).values
+    dM = -df[_LOW].diff().clip_upper(0).values
     dM[dP > dM] = 0
     dP[dP < dM] = 0
     dP[0] = dP[1]
@@ -398,9 +403,9 @@ def iADXWilder(df, adx_period):
 def iSAR(df, step, maximum):
     dir_long = True
     ACC = step
-    SAR = df['Close'].values.copy()
-    High = df['High'].values
-    Low = df['Low'].values
+    SAR = df[_CLOSE].values.copy()
+    High = df[_HIGH].values
+    Low = df[_LOW].values
     Ep1 = High[0]
     for i in range(1, len(SAR)):
         if dir_long == True:
@@ -426,13 +431,13 @@ def iSAR(df, step, maximum):
 
 # iIchimoku()関数
 def iIchimoku(df, tenkan_period, kijun_period, senkoub_period):
-    high = df['High']
-    low = df['Low']
+    high = df[_HIGH]
+    low = df[_LOW]
     Tenkan = (high.rolling(tenkan_period).max() + low.rolling(tenkan_period).min()) / 2
     Kijun = (high.rolling(kijun_period).max() + low.rolling(kijun_period).min()) / 2
     SenkouA = (Tenkan + Kijun).shift(kijun_period) / 2
     SenkouB = (high.rolling(senkoub_period).max() + low.rolling(senkoub_period).min()).shift(kijun_period) / 2
-    Chikou = df['Close'].shift(-kijun_period)
+    Chikou = df[_CLOSE].shift(-kijun_period)
     return pd.DataFrame({'Tenkan': Tenkan, 'Kijun': Kijun, 'SenkouA': SenkouA,
                          'SenkouB': SenkouB, 'Chikou': Chikou},
                         columns=['Tenkan', 'Kijun', 'SenkouA', 'SenkouB', 'Chikou'],
@@ -450,8 +455,8 @@ if __name__ == '__main__':
     # x = iMA(ohlc_ext, 14, ma_method='SMMA', applied_price='Median')
     # x = iMA(ohlc_ext, 14, ma_method='LWMA', applied_price='Typical')
     # x = iATR(ohlc_ext, 14)
-    # x = iDEMA(ohlc_ext, 14, applied_price='Close')
-    # x = iTEMA(ohlc_ext, 14, applied_price='Close')
+    # x = iDEMA(ohlc_ext, 14, applied_price=_CLOSE)
+    # x = iTEMA(ohlc_ext, 14, applied_price=_CLOSE)
     # x = iMomentum(ohlc_ext, 14)
     # x = iRSI(ohlc_ext, 14)
     # x = iStdDev(ohlc_ext, 14, ma_shift=3, applied_price='Weighted')

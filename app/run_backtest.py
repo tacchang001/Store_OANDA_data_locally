@@ -8,6 +8,10 @@ from backtest.backtester import BackTest
 from backtest.market import Market
 from backtest.strategy import Strategy
 
+# https://pandas.pydata.org/pandas-docs/stable/user_guide/options.html#available-options
+pd.options.display.width = 120
+pd.options.display.colheader_justify = 'right'
+
 
 def main(args):
     sfn = 'input_schema.json'
@@ -16,16 +20,16 @@ def main(args):
     jsonschema.Draft4Validator.check_schema(schema)
 
     with open(args.json, 'r') as fr:
-        json_data = json.load(fr)
+        candles = pd.read_json(fr.read())
     try:
-        jsonschema.validate(json_data, schema)
+        jsonschema.validate(candles, schema)
     except jsonschema.ValidationError as e:
         print('Invalid JSON - {0}'.format(e.message), file=sys.stderr)
 
-    # m = Market(df)
-    # s = Strategy(m)
-    # bt = BackTest(m, s)
-    # bt.run()
+    m = Market(candles['candles'])
+    s = Strategy(m)
+    bt = BackTest(m, s)
+    bt.run()
 
 
 if __name__ == "__main__":
